@@ -1,0 +1,63 @@
+name: Test
+
+on:
+  push:
+  # Triggers the workflow on labeled PRs only.
+  pull_request_target:
+    types: [ labeled ]
+
+jobs:
+  test:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'safe to test'))
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+        java-version: [ "17" ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      # Install required tools
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: ${{ matrix.java-version }}
+
+      # Install Go for the Artifactory setup in the next step
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.x
+          cache: false
+
+      - name: Install local Artifactory
+        uses: jfrog/.github/actions/install-local-artifactory@main
+        with:
+          RTLIC: ${{ secrets.RTLIC }}
+
+      # Run tests
+      - name: Tests on Linux
+        if: runner.os == 'Linux'
+        run: ./gradlew clean validatePlugins check
+      - name: Tests on Windows
+        if: runner.os == 'Windows'
+        run: ./gradlew.bat clean check
+
+      # Stop Gradle daemon
+      - name: Stop Gradle
+        run: ./gradlew --stop
+
+  test-macos:
+    # Always skip macOS tests - Artifactory local installation not supported on macOS-latest
+    if: false
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        java-version: [ "17" ]
+    name: test (macOS-latest, ${{ matrix.java-version }})
+    steps:
+      - name: Skip macOS tests
+        run: echo "Tests skipped - Artifactory local installation not supported on macOS-latest"

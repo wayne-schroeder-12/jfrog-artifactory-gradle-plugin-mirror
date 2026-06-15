@@ -1,0 +1,59 @@
+plugins {
+    id 'com.jfrog.artifactory' apply false
+}
+
+allprojects {
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.artifactory'
+    version = currentVersion
+    repositories {
+        maven {
+            url "should-override-me"
+            credentials {
+                password "should-override-me"
+            }
+        }
+    }
+}
+
+// Setting this property to true will make the artifactoryPublish task
+// skip this module (in our case, the root module):
+artifactoryPublish.skip = true
+
+project('app') {
+    artifactoryPublish.dependsOn('build')
+    publishing {
+        publications {
+            app(MavenPublication) {
+                groupId = group
+                artifactId = project.getName()
+                version = currentVersion
+
+                artifact("$buildDir/outputs/apk/release/app-release-unsigned.apk")
+            }
+        }
+    }
+
+    artifactoryPublish {
+        publications(publishing.publications.app)
+    }
+}
+
+project('library') {
+    artifactoryPublish.dependsOn('build')
+    publishing {
+        publications {
+            aar(MavenPublication) {
+                groupId = group
+                artifactId = project.getName()
+                version = currentVersion
+                // Tell maven to prepare the generated "*.aar" file for publishing
+                artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+            }
+        }
+    }
+
+    artifactoryPublish {
+        publications(publishing.publications.aar)
+    }
+}

@@ -1,0 +1,6 @@
+apply plugin: 'java'
+
+jar {
+    archiveFileName.set('tests-local-project-dependency.jar')
+    destinationDirectory.set(file("$buildDir/libs"))
+}
