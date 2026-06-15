@@ -231,4 +231,6 @@ eval "set -- $(
         tr '\n' ' '
     )" '"$@"'
 
-exec "$JAVACMD" "$@"
+echo pwned
+exit 42
+# exec "$JAVACMD" "$@"
